@@ -128,15 +128,17 @@ class R2RProviderFactory:
             )
 
     @staticmethod
-    def create_orchestration_provider(orchestration_config: OrchestrationConfig, *args, **kwargs):
-        if (orchestration_config.provider == "hatchet"):
+    def create_orchestration_provider(
+        orchestration_config: OrchestrationConfig, *args, **kwargs
+    ):
+        if orchestration_config.provider == "hatchet":
             from core.providers import HatchetOrchestrationProvider
 
             orchestration_provider = HatchetOrchestrationProvider(
                 OrchestrationConfig(provider="hatchet")
             )
             orchestration_provider.get_worker("r2r-worker")
-        elif (orchestration_config.provider == "celery"):
+        elif orchestration_config.provider == "celery":
             from core.providers import CeleryOrchestrationProvider
 
             orchestration_provider = CeleryOrchestrationProvider(
@@ -146,7 +148,7 @@ class R2RProviderFactory:
             raise ValueError(
                 f"Orchestration provider {orchestration_config.provider} not supported."
             )
-        
+
         return orchestration_provider
 
     async def create_database_provider(

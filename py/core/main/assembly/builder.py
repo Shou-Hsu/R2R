@@ -21,6 +21,7 @@ from core.pipelines import KGEnrichmentPipeline, RAGPipeline, SearchPipeline
 from ..api.auth_router import AuthRouter
 from ..api.ingestion_router import IngestionRouter
 from ..api.management_router import ManagementRouter
+
 # from ..api.restructure_router import RestructureRouter
 from ..api.retrieval_router import RetrievalRouter
 from ..app import R2RApp

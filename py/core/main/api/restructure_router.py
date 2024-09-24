@@ -159,7 +159,7 @@
 #             task_id = r2r_hatchet.admin.run_workflow(
 #                 "enrich-graph", {"request": workflow_input}
 #             )
-            
+
 
 #             return {
 #                 "message": "Graph enrichment task queued successfully. Please check http://<your-hatchet-gui-url> for completion status.",

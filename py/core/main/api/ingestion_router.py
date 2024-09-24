@@ -17,7 +17,7 @@ from core.base.api.models import (
 )
 from core.base.providers import OrchestrationProvider
 
-from ..orchestration import IngestFilesWorkflow # , UpdateFilesWorkflow
+from ..orchestration import IngestFilesWorkflow  # , UpdateFilesWorkflow
 from ..services.ingestion_service import IngestionService
 from .base_router import BaseRouter, RunType
 
@@ -159,8 +159,7 @@ class IngestionRouter(BaseRouter):
                         "document_id": str(document_id),
                     }
                 )
-            return messages                
-        
+            return messages
 
         @self.router.post(
             "/retry_ingest_files",

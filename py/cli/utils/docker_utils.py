@@ -106,6 +106,7 @@ async def run_local_serve(
 
     # await r2r_instance.orchestration_provider.start_worker()
     import asyncio
+
     asyncio.create_task(r2r_instance.orchestration_provider.start_worker())
 
     r2r_instance.serve(host, available_port)
