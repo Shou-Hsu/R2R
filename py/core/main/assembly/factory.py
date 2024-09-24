@@ -16,6 +16,7 @@ from core.base import (
     DatabaseConfig,
     DatabaseProvider,
     EmbeddingConfig,
+    OrchestrationConfig,
     EmbeddingProvider,
     FileConfig,
     FileProvider,
@@ -127,14 +128,25 @@ class R2RProviderFactory:
             )
 
     @staticmethod
-    def create_orchestration_provider(*args, **kwargs):
-        from core.base.providers import OrchestrationConfig
-        from core.providers import HatchetOrchestrationProvider
+    def create_orchestration_provider(orchestration_config: OrchestrationConfig, *args, **kwargs):
+        if (orchestration_config.provider == "hatchet"):
+            from core.providers import HatchetOrchestrationProvider
 
-        orchestration_provider = HatchetOrchestrationProvider(
-            OrchestrationConfig(provider="hatchet")
-        )
-        orchestration_provider.get_worker("r2r-worker")
+            orchestration_provider = HatchetOrchestrationProvider(
+                OrchestrationConfig(provider="hatchet")
+            )
+            orchestration_provider.get_worker("r2r-worker")
+        elif (orchestration_config.provider == "celery"):
+            from core.providers import CeleryOrchestrationProvider
+
+            orchestration_provider = CeleryOrchestrationProvider(
+                OrchestrationConfig(provider="celery")
+            )
+        else:
+            raise ValueError(
+                f"Orchestration provider {orchestration_config.provider} not supported."
+            )
+        
         return orchestration_provider
 
     async def create_database_provider(
@@ -352,7 +364,7 @@ class R2RProviderFactory:
 
         orchestration_provider = (
             orchestration_provider_override
-            or self.create_orchestration_provider()
+            or self.create_orchestration_provider(self.config.orchestration)
         )
 
         return R2RProviders(

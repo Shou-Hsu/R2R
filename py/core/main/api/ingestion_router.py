@@ -17,8 +17,7 @@ from core.base.api.models import (
 )
 from core.base.providers import OrchestrationProvider
 
-from ...main.hatchet import r2r_hatchet
-from ..hatchet import IngestFilesWorkflow, UpdateFilesWorkflow
+from ..orchestration import IngestFilesWorkflow # , UpdateFilesWorkflow
 from ..services.ingestion_service import IngestionService
 from .base_router import BaseRouter, RunType
 
@@ -43,9 +42,9 @@ class IngestionRouter(BaseRouter):
         self.orchestration_provider.register_workflow(
             IngestFilesWorkflow(self.service)
         )
-        self.orchestration_provider.register_workflow(
-            UpdateFilesWorkflow(self.service)
-        )
+        # self.orchestration_provider.register_workflow(
+        #     UpdateFilesWorkflow(self.service)
+        # )
 
     def _load_openapi_extras(self):
         yaml_path = (
@@ -145,25 +144,23 @@ class IngestionRouter(BaseRouter):
                     file_content,
                     file_data["content_type"],
                 )
+                task = self.orchestration_provider.update_files_workflow.delay(
+                    **workflow_input
+                )
 
-                task_id = r2r_hatchet.admin.run_workflow(
-                    "ingest-file",
-                    {"request": workflow_input},
-                    options={
-                        "additional_metadata": {
-                            "document_id": str(document_id),
-                        }
-                    },
+                task = self.orchestration_provider.ingest_files_workflow.delay(
+                    **workflow_input
                 )
 
                 messages.append(
                     {
                         "message": "Ingestion task queued successfully.",
-                        "task_id": str(task_id),
+                        "task_id": str(task.id),
                         "document_id": str(document_id),
                     }
                 )
-            return messages
+            return messages                
+        
 
         @self.router.post(
             "/retry_ingest_files",

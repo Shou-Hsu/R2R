@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from ..base.abstractions import GenerationConfig
 from ..base.agent.agent import AgentConfig
 from ..base.logging.run_logger import LoggingConfig
+from ..base.providers.orchestration import OrchestrationConfig
 from ..base.providers.auth import AuthConfig
 from ..base.providers.chunking import ChunkingConfig
 from ..base.providers.crypto import CryptoConfig
@@ -60,6 +61,7 @@ class R2RConfig:
         "logging": ["provider", "log_table"],
         "prompt": ["provider"],
         "database": ["provider"],
+        "orchestration": ["provider"],
         "agent": ["generation_config"],
         "file": ["provider"],
     }
@@ -73,6 +75,7 @@ class R2RConfig:
     logging: LoggingConfig
     parsing: ParsingConfig
     prompt: PromptConfig
+    orchestration: OrchestrationConfig
     agent: AgentConfig
     file: FileConfig
 
@@ -132,6 +135,7 @@ class R2RConfig:
         self.logging = LoggingConfig.create(**self.logging)  # type: ignore
         if "chunking_config" not in self.parsing:  # type: ignore
             self.parsing["chunking_config"] = self.chunking  # type: ignore
+        self.orchestration = OrchestrationConfig.create(**self.orchestration)  # type: ignore
         self.parsing = ParsingConfig.create(**self.parsing)  # type: ignore
         self.prompt = PromptConfig.create(**self.prompt)  # type: ignore
         self.agent = AgentConfig.create(**self.agent)  # type: ignore

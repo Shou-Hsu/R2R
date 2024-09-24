@@ -203,7 +203,7 @@ __all__ = [
     "IngestionRouter",
     "ManagementRouter",
     "RetrievalRouter",
-    "RestructureRouter",
+    # "RestructureRouter",
     ## R2R SERVICES
     "AuthService",
     "IngestionService",

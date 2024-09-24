@@ -130,7 +130,6 @@ class UnstructuredParsingProvider(ParsingProvider):
         texts = self.parsers[document.type].ingest(  # type: ignore
             file_content, chunk_size=chunk_size
         )
-        cchunk_id = 0
         chunk_id = 0
         async for text in texts:  # type: ignore
             if text and text != "":
