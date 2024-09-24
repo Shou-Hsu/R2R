@@ -35,13 +35,18 @@ class IngestionRouter(BaseRouter):
             raise ValueError(
                 "IngestionRouter requires an orchestration provider."
             )
-        super().__init__(service, run_type, orchestration_provider)
         self.service: IngestionService = service
+        self.ingest_files_workflow = IngestFilesWorkflow(self.service)
+        super().__init__(service, run_type, orchestration_provider)
 
     def _register_workflows(self):
         self.orchestration_provider.register_workflow(
-            IngestFilesWorkflow(self.service)
+            self.ingest_files_workflow
         )
+
+        # self.orchestration_provider.register_workflow(
+        #     IngestFilesWorkflow(self.service)
+        # )
         # self.orchestration_provider.register_workflow(
         #     UpdateFilesWorkflow(self.service)
         # )
@@ -144,13 +149,10 @@ class IngestionRouter(BaseRouter):
                     file_content,
                     file_data["content_type"],
                 )
-                task = self.orchestration_provider.update_files_workflow.delay(
-                    **workflow_input
+                workflow = self.ingest_files_workflow.create_workflow(
+                    workflow_input
                 )
-
-                task = self.orchestration_provider.ingest_files_workflow.delay(
-                    **workflow_input
-                )
+                task = workflow.apply_async()
 
                 messages.append(
                     {
@@ -159,6 +161,16 @@ class IngestionRouter(BaseRouter):
                         "document_id": str(document_id),
                     }
                 )
+
+                # workflow = self.ingest_files_workflow.create_workflow()
+                # task = workflow.apply_async(args=[workflow_input])
+
+                # messages.append({
+                #     "message": "Ingestion task queued successfully.",
+                #     "task_id": str(task.id),
+                #     "document_id": str(document_id),
+                # })
+
             return messages
 
         @self.router.post(

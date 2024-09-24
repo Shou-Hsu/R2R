@@ -71,6 +71,7 @@ deepdiff = { version = "^7.0.1", optional = true }
 tokenizers = { version = "0.19", optional = true }
 supabase = "^2.7.4"
 celery = "^5.4.0"
+pyamqp = "^0.1.0.7"
 
 [tool.poetry.extras]
 core = [

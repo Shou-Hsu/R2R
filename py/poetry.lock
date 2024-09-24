@@ -2717,6 +2717,21 @@ files = [
 numpy = "*"
 
 [[package]]
+name = "pika"
+version = "0.13.0"
+description = "Pika Python AMQP Client Library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pika-0.13.0-py2.py3-none-any.whl", hash = "sha256:847916ada527ee064025c1a0b981dc6856ea333734e695012006c24cab233bca"},
+    {file = "pika-0.13.0.tar.gz", hash = "sha256:5338d829d1edb3e5bcf1523b4a9e32c56dea5a8bda7018825849e35325580484"},
+]
+
+[package.extras]
+tornado = ["tornado"]
+twisted = ["twisted"]
+
+[[package]]
 name = "pillow"
 version = "10.4.0"
 description = "Python Imaging Library (Fork)"
@@ -3045,6 +3060,21 @@ files = [
     {file = "psycopg2_binary-2.9.9-cp39-cp39-win32.whl", hash = "sha256:9dba73be7305b399924709b91682299794887cbbd88e38226ed9f6712eabee90"},
     {file = "psycopg2_binary-2.9.9-cp39-cp39-win_amd64.whl", hash = "sha256:f7ae5d65ccfbebdfa761585228eb4d0df3a8b15cfb53bd953e713e09fbb12957"},
 ]
+
+[[package]]
+name = "pyamqp"
+version = "0.1.0.7"
+description = "Python interface for simple usage of AMQP middleware applications."
+optional = false
+python-versions = ">=3.6.0"
+files = [
+    {file = "PyAMQP-0.1.0.7-py2.py3-none-any.whl", hash = "sha256:d10a1c0e687f49784cdf2c3de101862fa698d3f156f7a35c5f899bf98012d5ca"},
+    {file = "PyAMQP-0.1.0.7.tar.gz", hash = "sha256:fff1d481cc3991eb4283f5bc465757b1e3842567ea51c571bb3a921881db1cff"},
+]
+
+[package.dependencies]
+pika = "0.13"
+pytest = "*"
 
 [[package]]
 name = "pycodestyle"
@@ -4785,4 +4815,4 @@ core-ingest-movies = []
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "d5b3df9e7d1a285764d5a0a0002333552a439182865264710f818fe017ccc470"
+content-hash = "f4abf4085ae9cc079c33c6b032ee425f41a69d702a618b832cd98a0c712476e4"

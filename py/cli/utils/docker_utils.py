@@ -104,10 +104,10 @@ async def run_local_serve(
     click.echo("R2R now runs on port 7272 by default!")
     available_port = find_available_port(port)
 
-    # await r2r_instance.orchestration_provider.start_worker()
-    import asyncio
-
-    asyncio.create_task(r2r_instance.orchestration_provider.start_worker())
+    r2r_instance.orchestration_provider.start_worker()
+    # import asyncio
+    # asyncio.create_task(r2r_instance.orchestration_provider.start_worker())
+    # print('I got here'*1000)
 
     r2r_instance.serve(host, available_port)
 
