@@ -236,7 +236,7 @@ class R2RBuilder:
             "auth_router": AuthRouter(services["auth"]).get_router(),
             "ingestion_router": IngestionRouter(
                 services["ingestion"],
-                orchestration_provider=orchestration_provider,
+                # orchestration_provider=orchestration_provider,
             ).get_router(),
             "management_router": ManagementRouter(
                 services["management"]

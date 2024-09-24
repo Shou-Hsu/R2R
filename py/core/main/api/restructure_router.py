@@ -49,18 +49,19 @@ class RestructureRouter(BaseRouter):
         return yaml_content
 
     def _register_workflows(self):
-        self.orchestration_provider.register_workflow(
-            EnrichGraphWorkflow(self.service)
-        )
-        self.orchestration_provider.register_workflow(
-            KgExtractAndStoreWorkflow(self.service)
-        )
-        self.orchestration_provider.register_workflow(
-            CreateGraphWorkflow(self.service)
-        )
-        self.orchestration_provider.register_workflow(
-            KGCommunitySummaryWorkflow(self.service)
-        )
+        pass
+        # self.orchestration_provider.register_workflow(
+        #     EnrichGraphWorkflow(self.service)
+        # )
+        # self.orchestration_provider.register_workflow(
+        #     KgExtractAndStoreWorkflow(self.service)
+        # )
+        # self.orchestration_provider.register_workflow(
+        #     CreateGraphWorkflow(self.service)
+        # )
+        # self.orchestration_provider.register_workflow(
+        #     KGCommunitySummaryWorkflow(self.service)
+        # )
 
     def _setup_routes(self):
         @self.router.post(

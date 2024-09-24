@@ -11,6 +11,160 @@ from .base import r2r_hatchet
 
 logger = logging.getLogger(__name__)
 
+from celery import Celery, chain
+from celery.utils.log import get_task_logger
+
+from core.base import IngestionStatus, increment_version
+from core.base.abstractions import DocumentInfo, R2RException
+from ..services import IngestionService, IngestionServiceAdapter
+
+logger = get_task_logger(__name__)
+
+app = Celery('r2r_tasks')
+app.config_from_object('celeryconfig')
+
+class CeleryIngestionWorkflow:
+    def __init__(self, ingestion_service: IngestionService):
+        self.ingestion_service = ingestion_service
+
+    @app.task(name='parse', bind=True)
+    def parse(self, input_data):
+        parsed_data = IngestionServiceAdapter.parse_ingest_file_input(input_data)
+        ingestion_result = self.ingestion_service.ingest_file_ingress(**parsed_data)
+        document_info = ingestion_result["info"]
+
+        self.ingestion_service.update_document_status(
+            document_info,
+            status=IngestionStatus.PARSING,
+        )
+
+        extractions = list(self.ingestion_service.parse_file(document_info))
+        serializable_extractions = [fragment.to_dict() for fragment in extractions]
+
+        return {
+            "status": "Successfully extracted data",
+            "extractions": serializable_extractions,
+            "document_info": document_info.to_dict(),
+        }
+
+    @app.task(name='chunk', bind=True)
+    def chunk(self, parse_result):
+        document_info = DocumentInfo(**parse_result["document_info"])
+
+        self.ingestion_service.update_document_status(
+            document_info,
+            status=IngestionStatus.CHUNKING,
+        )
+
+        extractions = parse_result["extractions"]
+        chunking_config = parse_result.get("chunking_config")
+
+        chunks = list(self.ingestion_service.chunk_document(extractions, chunking_config))
+        serializable_chunks = [chunk.to_dict() for chunk in chunks]
+
+        return {
+            "status": "Successfully chunked data",
+            "chunks": serializable_chunks,
+            "document_info": document_info.to_dict(),
+        }
+
+    @app.task(name='embed', bind=True)
+    def embed(self, chunk_result):
+        document_info = DocumentInfo(**chunk_result["document_info"])
+
+        self.ingestion_service.update_document_status(
+            document_info,
+            status=IngestionStatus.EMBEDDING,
+        )
+
+        chunks = chunk_result["chunks"]
+        embeddings = list(self.ingestion_service.embed_document(chunks))
+
+        self.ingestion_service.update_document_status(
+            document_info,
+            status=IngestionStatus.STORING,
+        )
+
+        list(self.ingestion_service.store_embeddings(embeddings))
+
+        return {
+            "document_info": document_info.to_dict(),
+        }
+
+    @app.task(name='finalize', bind=True)
+    def finalize(self, embed_result):
+        document_info = DocumentInfo(**embed_result["document_info"])
+        is_update = embed_result.get("is_update", False)
+
+        self.ingestion_service.finalize_ingestion(document_info, is_update=is_update)
+
+        self.ingestion_service.update_document_status(
+            document_info,
+            status=IngestionStatus.SUCCESS,
+        )
+
+        return {
+            "status": "Successfully finalized ingestion",
+            "document_info": document_info.to_dict(),
+        }
+
+@app.task(name='ingest_file')
+def ingest_file(input_data):
+    workflow = CeleryIngestionWorkflow(IngestionService())
+    return chain(
+        workflow.parse.s(input_data),
+        workflow.chunk.s(),
+        workflow.embed.s(),
+        workflow.finalize.s()
+    )()
+
+@app.task(name='update_files')
+def update_files(data):
+    ingestion_service = IngestionService()
+    parsed_data = IngestionServiceAdapter.parse_update_files_input(data)
+
+    file_datas = parsed_data["file_datas"]
+    user = parsed_data["user"]
+    document_ids = parsed_data["document_ids"]
+    metadatas = parsed_data["metadatas"]
+    chunking_config = parsed_data["chunking_config"]
+    file_sizes_in_bytes = parsed_data["file_sizes_in_bytes"]
+
+    if not file_datas:
+        raise R2RException(status_code=400, message="No files provided for update.")
+    if len(document_ids) != len(file_datas):
+        raise R2RException(status_code=400, message="Number of ids does not match number of files.")
+
+    documents_overview = ingestion_service.providers.database.relational.get_documents_overview(
+        filter_document_ids=document_ids,
+        filter_user_ids=None if user.is_superuser else [user.id],
+    )["results"]
+
+    if len(documents_overview) != len(document_ids):
+        raise R2RException(status_code=404, message="One or more documents not found.")
+
+    results = []
+    for idx, (file_data, doc_id, doc_info, file_size_in_bytes) in enumerate(
+        zip(file_datas, document_ids, documents_overview, file_sizes_in_bytes)
+    ):
+        new_version = increment_version(doc_info.version)
+        updated_metadata = metadatas[idx] if metadatas else doc_info.metadata
+        updated_metadata["title"] = updated_metadata.get("title") or file_data["filename"].split("/")[-1]
+
+        ingest_input = {
+            "file_data": file_data,
+            "user": data.get("user"),
+            "metadata": updated_metadata,
+            "document_id": str(doc_id),
+            "version": new_version,
+            "chunking_config": chunking_config.model_dump_json() if chunking_config else None,
+            "size_in_bytes": file_size_in_bytes,
+            "is_update": True,
+        }
+
+        results.append(ingest_file.delay(ingest_input))
+
+    return results
 
 @r2r_hatchet.workflow(
     name="ingest-file",
