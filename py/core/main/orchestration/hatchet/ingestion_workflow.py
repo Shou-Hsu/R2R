@@ -6,7 +6,7 @@ from hatchet_sdk import Context
 from core.base import IngestionStatus, increment_version
 from core.base.abstractions import DocumentInfo, R2RException
 
-from ..services import IngestionService, IngestionServiceAdapter
+from ...services import IngestionService, IngestionServiceAdapter
 from .base import r2r_hatchet
 
 logger = logging.getLogger(__name__)

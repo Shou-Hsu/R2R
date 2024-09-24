@@ -17,8 +17,12 @@ from core.base.api.models import (
 )
 from core.base.providers import OrchestrationProvider
 
-from ...main.hatchet import r2r_hatchet
-from ..hatchet import IngestFilesWorkflow, UpdateFilesWorkflow
+from ..orchestration.celery import CeleryIngestFilesWorkflow
+from ..orchestration.hatchet import (
+    IngestFilesWorkflow,
+    UpdateFilesWorkflow,
+    r2r_hatchet,
+)
 from ..services.ingestion_service import IngestionService
 from .base_router import BaseRouter, RunType
 
@@ -38,14 +42,18 @@ class IngestionRouter(BaseRouter):
             )
         super().__init__(service, run_type, orchestration_provider)
         self.service: IngestionService = service
+        self.ingest_files_workflow = CeleryIngestFilesWorkflow(self.service)
 
     def _register_workflows(self):
-        self.orchestration_provider.register_workflow(
-            IngestFilesWorkflow(self.service)
-        )
-        self.orchestration_provider.register_workflow(
-            UpdateFilesWorkflow(self.service)
-        )
+        pass
+        # self.orchestration_provider.set_service(
+        #     ingestion=self.service
+        # )
+        # # self.orchestration_provider.register_workflow(
+        # #     UpdateFilesWorkflow(self.service)
+        # # )
+        # self.service: IngestionService = service
+        # self.ingest_files_workflow = CeleryIngestFilesWorkflow(self.service)
 
     def _load_openapi_extras(self):
         yaml_path = (
@@ -146,20 +154,23 @@ class IngestionRouter(BaseRouter):
                     file_data["content_type"],
                 )
 
-                task_id = r2r_hatchet.admin.run_workflow(
-                    "ingest-file",
-                    {"request": workflow_input},
-                    options={
-                        "additional_metadata": {
-                            "document_id": str(document_id),
-                        }
-                    },
+                # task_id = r2r_hatchet.admin.run_workflow(
+                #     "ingest-file",
+                #     {"request": workflow_input},
+                #     options={
+                #         "additional_metadata": {
+                #             "document_id": str(document_id),
+                #         }
+                #     },
+                # )
+                task = self.ingest_files_workflow.ingest_file.delay(
+                    workflow_input
                 )
 
                 messages.append(
                     {
                         "message": "Ingestion task queued successfully.",
-                        "task_id": str(task_id),
+                        "task_id": str(task.id),
                         "document_id": str(document_id),
                     }
                 )
