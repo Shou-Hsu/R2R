@@ -85,13 +85,13 @@ services:
       sh -c "
         set -e
         echo 'Waiting for PostgreSQL to be ready...'
-        while ! pg_isready -h postgres -p 5432 -U postgres; do
+        while ! pg_isready -h host.docker.internal -p ${POSTGRES_PORT:-5432} -U ${POSTGRES_USER:-postgres}; do
           sleep 1
         done
         echo 'PostgreSQL is ready, checking if database exists...'
-        if ! PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -p 5432 -U ${POSTGRES_USER:-postgres} -lqt | grep -qw ${HATCHET_POSTGRES_DBNAME:-hatchet}; then
+        if ! PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h host.docker.internal -p ${POSTGRES_PORT:-5432} -U ${POSTGRES_USER:-postgres} -lqt | grep -qw ${HATCHET_POSTGRES_DBNAME:-hatchet}; then
           echo 'Database does not exist, creating it...'
-          PGPASSWORD=${POSTGRES_PASSWORD:-postgres} createdb -h postgres -p 5432 -U ${POSTGRES_USER:-postgres} -w ${HATCHET_POSTGRES_DBNAME:-hatchet}
+          PGPASSWORD=${POSTGRES_PASSWORD:-postgres} createdb -h host.docker.internal -p ${POSTGRES_PORT:-5432} -U ${POSTGRES_USER:-postgres} -w ${HATCHET_POSTGRES_DBNAME:-hatchet}
         else
           echo 'Database already exists, skipping creation.'
         fi
@@ -197,7 +197,7 @@ services:
         aliases:
           - host.docker.internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8733/live"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8733/live"]
       interval: 10s
       timeout: 5s
       retries: 5
