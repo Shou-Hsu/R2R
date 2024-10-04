@@ -179,6 +179,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
   hatchet-dashboard:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.49.0-alpha.4
