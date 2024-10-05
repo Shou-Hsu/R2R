@@ -143,7 +143,7 @@ Search with custom settings, such as bespoke document filters and larger search 
 # returns only chunks from documents with title `document_title`
 const filtered_search_response = client.search(
     "What was Uber's profit in 2020?",
-    { search_filters: {
+    { filters: {
         $eq: "uber_2021.pdf"
     },
     search_limit: 100
@@ -159,7 +159,7 @@ Combine traditional keyword-based search with vector search:
 ```javascript
 const hybrid_search_response = client.search(
     "What was Uber's profit in 2020?",
-    { search_filters: {
+    { filters: {
         $eq: "uber_2021.pdf"
     },
     search_limit: 100
@@ -604,7 +604,7 @@ Note that any of the customization seen in AI powered search and RAG documentati
   Whether to use vector search.
 </ParamField>
 
-<ParamField path="search_filters" type="object">
+<ParamField path="filters" type="object">
   Optional filters for the search.
 </ParamField>
 

@@ -3,7 +3,7 @@ import sys
 
 from r2r import R2RClient
 
-client = R2RClient("http://localhost:7272")
+client = R2RClient("http://localhost:7274")
 
 
 def compare_result_fields(result, expected_fields):
@@ -170,7 +170,7 @@ def test_vector_search_sample_file_filter_sdk():
     results = client.search(
         query="What was Uber's recent profit??",
         vector_search_settings={
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             }
         },
@@ -201,7 +201,7 @@ def test_hybrid_search_sample_file_filter_sdk():
         query="What was Uber's recent profit??",
         vector_search_settings={
             "use_hybrid_search": True,
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             },
         },
@@ -238,7 +238,7 @@ def test_rag_response_sample_file_sdk():
     response = client.rag(
         query="What was Uber's recent profit and loss?",
         vector_search_settings={
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             }
         },
@@ -263,7 +263,7 @@ def test_rag_response_stream_sample_file_sdk():
         query="What was Uber's recent profit and loss?",
         rag_generation_config={"stream": True},
         vector_search_settings={
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             }
         },
@@ -298,7 +298,7 @@ def test_agent_sample_file_sdk():
         ],
         rag_generation_config={"stream": False},
         vector_search_settings={
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             }
         },
@@ -333,7 +333,7 @@ def test_agent_stream_sample_file_sdk():
         ],
         rag_generation_config={"stream": True},
         vector_search_settings={
-            "search_filters": {
+            "filters": {
                 "document_id": {"$eq": "3e157b3a-8469-51db-90d9-52e7d896b49b"}
             }
         },
@@ -594,6 +594,173 @@ def test_superuser_capabilities():
     assert analytics_result["results"]["analytics_data"]["search_latencies"]
 
     print("Superuser capabilities test passed")
+    print("~" * 100)
+
+
+def test_multi_user_document_management():
+    print("Testing: User document management")
+
+    # Register and login as user1
+    client.register("user1@example.com", "password123")
+    client.login("user1@example.com", "password123")
+
+    # Ingest a sample file for user1
+    user1_ingestion_result = client.ingest_files(
+        ["core/examples/data/lyft_2021.pdf"]
+    )["results"]
+
+    # Check the ingestion result for user1
+    if not user1_ingestion_result:
+        print(
+            "User document management test failed: Ingestion failed for user1"
+        )
+        sys.exit(1)
+
+    user1_ingested_document = user1_ingestion_result[0]
+    expected_ingestion_result = {
+        "message": "Ingestion task completed successfully.",
+        "task_id": None,
+        "document_id": lambda x: len(x)
+        == 36,  # Check if document_id is a valid UUID
+    }
+    compare_result_fields(user1_ingested_document, expected_ingestion_result)
+
+    # Register and login as user2
+    client.logout()
+    client.register("user2@example.com", "password123")
+    client.login("user2@example.com", "password123")
+
+    # Ingest a different sample file for user2
+    user2_ingestion_result = client.ingest_files(
+        ["core/examples/data/uber_2021.pdf"]
+    )["results"]
+
+    # Check the ingestion result for user2
+    if not user2_ingestion_result:
+        print(
+            "User document management test failed: Ingestion failed for user2"
+        )
+        sys.exit(1)
+
+    user2_ingested_document = user2_ingestion_result[0]
+    compare_result_fields(user2_ingested_document, expected_ingestion_result)
+
+    # Check user1's documents
+    client.logout()
+    client.login("user1@example.com", "password123")
+    user1_documents_overview = client.documents_overview()["results"]
+
+    if not user1_documents_overview:
+        print(
+            "User document management test failed: No documents found for user1"
+        )
+        sys.exit(1)
+
+    user1_ingested_document_overview = user1_documents_overview[0]
+    expected_document_overview = {
+        "id": user1_ingested_document["document_id"],
+        "title": "lyft_2021.pdf",
+        "user_id": lambda x: len(x) == 36,  # Check if user_id is a valid UUID
+        "type": "pdf",
+        "ingestion_status": "success",
+        "kg_extraction_status": "pending",
+        "version": "v0",
+        "collection_ids": lambda x: len(x) == 1
+        and len(x[0]) == 36,  # Check if collection_ids contains a valid UUID
+        "metadata": {"version": "v0"},
+    }
+    compare_result_fields(
+        user1_ingested_document_overview, expected_document_overview
+    )
+
+    # Perform a search for user1 on Lyft documents
+    user1_search_query = "What was Lyft's revenue in 2021?"
+    user1_search_result = client.search(query=user1_search_query)["results"]
+
+    # Check user1's search result
+    if not user1_search_result["vector_search_results"]:
+        print(
+            "User document management test failed: No search results found for user1"
+        )
+        sys.exit(1)
+
+    user1_lead_search_result = user1_search_result["vector_search_results"][0]
+    expected_user1_search_result = {
+        "text": lambda x: "Lyft" in x and "revenue" in x and "2021" in x,
+        "score": lambda x: 0.5 <= x <= 1.0,
+    }
+    compare_result_fields(
+        user1_lead_search_result, expected_user1_search_result
+    )
+
+    # Check user2's documents
+    client.logout()
+    client.login("user2@example.com", "password123")
+    user2_documents_overview = client.documents_overview()["results"]
+
+    if not user2_documents_overview:
+        print(
+            "User document management test failed: No documents found for user2"
+        )
+        sys.exit(1)
+
+    user2_ingested_document_overview = user2_documents_overview[0]
+    expected_document_overview = {
+        "id": user2_ingested_document["document_id"],
+        "title": "uber_2021.pdf",
+        "user_id": lambda x: len(x) == 36,  # Check if user_id is a valid UUID
+        "type": "pdf",
+        "ingestion_status": "success",
+        "kg_extraction_status": "pending",
+        "version": "v0",
+        "collection_ids": lambda x: len(x) == 1
+        and len(x[0]) == 36,  # Check if collection_ids contains a valid UUID
+        "metadata": {"version": "v0"},
+    }
+    compare_result_fields(
+        user2_ingested_document_overview, expected_document_overview
+    )
+
+    # Perform a search for user2 on Uber documents
+    user2_search_query = "What was Uber's revenue in 2021?"
+    user2_search_result = client.search(query=user2_search_query)["results"]
+
+    # Check user2's search result
+    if not user2_search_result["vector_search_results"]:
+        print(
+            "User document management test failed: No search results found for user2"
+        )
+        sys.exit(1)
+
+    user2_lead_search_result = user2_search_result["vector_search_results"][0]
+    expected_user2_search_result = {
+        "text": lambda x: "Uber" in x and "revenue" in x and "2021" in x,
+        "score": lambda x: 0.5 <= x <= 1.0,
+    }
+    compare_result_fields(
+        user2_lead_search_result, expected_user2_search_result
+    )
+
+    # Ensure user1 cannot access user2's document through search
+    client.logout()
+    client.login("user1@example.com", "password123")
+    user1_search_user2_doc_query = f"What was Uber's revenue in 2021?"
+    user1_search_user2_doc_result = client.search(
+        query=user1_search_user2_doc_query,
+        vector_search_settings={
+            "filters": {
+                "document_id": {"$eq": user2_ingested_document["document_id"]}
+            }
+        },
+    )["results"]
+
+    if len(user1_search_user2_doc_result["vector_search_results"]) > 0:
+        print(
+            f"User document management test failed: User1 accessed User2's document through search {user1_search_user2_doc_result['vector_search_results']}"
+        )
+        sys.exit(1)
+
+    print("User document management test passed")
     print("~" * 100)
 
 

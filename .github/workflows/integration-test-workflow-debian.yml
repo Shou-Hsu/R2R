@@ -118,6 +118,7 @@ jobs:
         poetry run python tests/integration/harness_sdk.py test_user_password_management
         poetry run python tests/integration/harness_sdk.py test_user_profile_management
         poetry run python tests/integration/harness_sdk.py test_user_logout
+        poetry run python tests/integration/harness_sdk.py test_multi_user_document_management
 
     - name: Stop R2R server
       if: always()

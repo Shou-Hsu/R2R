@@ -166,7 +166,7 @@ filtered_search_response = client.search(
     "What was Uber's profit in 2020?",
     vector_search_settings={
         # restrict results to the Uber document
-        "search_filters": {"title": {"$eq": "uber_2021.pdf"}},
+        "filters": {"title": {"$eq": "uber_2021.pdf"}},
         "search_limit": 100
     }
 )
